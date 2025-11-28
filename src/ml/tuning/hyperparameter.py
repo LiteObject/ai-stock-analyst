@@ -14,31 +14,31 @@ Supports:
 - Pruning for early stopping of bad trials
 """
 
+from __future__ import annotations
+
 import logging
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union, TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import TimeSeriesSplit
 
-try:
-    import optuna
-    from optuna.pruners import MedianPruner, HyperbandPruner
-    from optuna.samplers import TPESampler
+# Import optuna with proper type stubs
+import optuna
+from optuna.pruners import MedianPruner, HyperbandPruner
+from optuna.samplers import TPESampler
 
-    HAS_OPTUNA = True
-except ImportError:
-    HAS_OPTUNA = False
-    optuna = None
+HAS_OPTUNA = True
 
+# Import ML libraries
 try:
     import xgboost as xgb
 
     HAS_XGB = True
 except ImportError:
     HAS_XGB = False
-    xgb = None
+    xgb = None  # type: ignore[assignment]
 
 try:
     import lightgbm as lgb
@@ -46,7 +46,7 @@ try:
     HAS_LGB = True
 except ImportError:
     HAS_LGB = False
-    lgb = None
+    lgb = None  # type: ignore[assignment]
 
 try:
     import catboost as cb
@@ -54,7 +54,7 @@ try:
     HAS_CB = True
 except ImportError:
     HAS_CB = False
-    cb = None
+    cb = None  # type: ignore[assignment]
 
 logger = logging.getLogger(__name__)
 
@@ -156,7 +156,7 @@ class HyperparameterOptimizer:
     def _detect_gpu(self) -> GPUConfig:
         """Auto-detect GPU availability."""
         try:
-            import torch
+            import torch  # type: ignore[import-unresolved]
 
             if torch.cuda.is_available():
                 gpu_name = torch.cuda.get_device_name(0)
@@ -206,7 +206,7 @@ class HyperparameterOptimizer:
         if not HAS_XGB:
             raise ImportError("XGBoost is required. Install with: pip install xgboost")
 
-        def objective(trial: optuna.Trial) -> float:
+        def objective(trial: "optuna.Trial") -> float:
             params = {
                 # Core parameters
                 "n_estimators": trial.suggest_int("n_estimators", 100, 1000),
@@ -266,7 +266,7 @@ class HyperparameterOptimizer:
                 "LightGBM is required. Install with: pip install lightgbm"
             )
 
-        def objective(trial: optuna.Trial) -> float:
+        def objective(trial: "optuna.Trial") -> float:
             params = {
                 # Core parameters
                 "n_estimators": trial.suggest_int("n_estimators", 100, 1000),
@@ -332,7 +332,7 @@ class HyperparameterOptimizer:
                 "CatBoost is required. Install with: pip install catboost"
             )
 
-        def objective(trial: optuna.Trial) -> float:
+        def objective(trial: "optuna.Trial") -> float:
             params = {
                 # Core parameters
                 "iterations": trial.suggest_int("iterations", 100, 1000),
@@ -390,7 +390,7 @@ class HyperparameterOptimizer:
             OptimizationResult with optimal ensemble configuration
         """
 
-        def objective(trial: optuna.Trial) -> float:
+        def objective(trial: "optuna.Trial") -> float:
             # Optimize model weights
             xgb_weight = trial.suggest_float("xgb_weight", 0.0, 1.0)
             lgb_weight = trial.suggest_float("lgb_weight", 0.0, 1.0)
@@ -424,7 +424,7 @@ class HyperparameterOptimizer:
 
         return self._create_result(study)
 
-    def _create_study(self, name: str, direction: str) -> optuna.Study:
+    def _create_study(self, name: str, direction: str) -> "optuna.Study":
         """Create an Optuna study with configured samplers and pruners."""
         sampler = TPESampler(seed=self.random_state)
         pruner = HyperbandPruner(
@@ -448,11 +448,12 @@ class HyperparameterOptimizer:
         y: pd.Series,
         params: Dict[str, Any],
         metric: str,
-        trial: optuna.Trial,
+        trial: "optuna.Trial",
     ) -> float:
         """Calculate cross-validation score for XGBoost."""
+        assert xgb is not None, "XGBoost is required"
         tscv = TimeSeriesSplit(n_splits=self.n_cv_splits)
-        scores = []
+        scores: List[float] = []
 
         for fold, (train_idx, val_idx) in enumerate(tscv.split(X)):
             X_train, X_val = X.iloc[train_idx], X.iloc[val_idx]
@@ -475,24 +476,25 @@ class HyperparameterOptimizer:
             if metric in ["logloss", "binary_logloss"]:
                 from sklearn.metrics import log_loss
 
-                score = log_loss(y_val, preds)
+                score = float(log_loss(y_val, preds))
             elif metric == "auc":
                 from sklearn.metrics import roc_auc_score
 
-                score = -roc_auc_score(y_val, preds)  # Negative for minimization
+                score = float(-roc_auc_score(y_val, preds))  # Negative for minimization
             else:
                 from sklearn.metrics import accuracy_score
 
-                score = -accuracy_score(y_val, (preds > 0.5).astype(int))
+                preds_binary = (np.asarray(preds) > 0.5).astype(int)
+                score = float(-accuracy_score(y_val, preds_binary))
 
             scores.append(score)
 
             # Pruning
-            trial.report(np.mean(scores), fold)
+            trial.report(float(np.mean(scores)), fold)
             if trial.should_prune():
                 raise optuna.TrialPruned()
 
-        return np.mean(scores)
+        return float(np.mean(scores))
 
     def _cv_score_lgb(
         self,
@@ -503,8 +505,9 @@ class HyperparameterOptimizer:
         trial: optuna.Trial,
     ) -> float:
         """Calculate cross-validation score for LightGBM."""
+        assert lgb is not None, "LightGBM is required"
         tscv = TimeSeriesSplit(n_splits=self.n_cv_splits)
-        scores = []
+        scores: List[float] = []
 
         for fold, (train_idx, val_idx) in enumerate(tscv.split(X)):
             X_train, X_val = X.iloc[train_idx], X.iloc[val_idx]
@@ -523,28 +526,29 @@ class HyperparameterOptimizer:
                 callbacks=callbacks,
             )
 
-            preds = model.predict(X_val)
+            preds = np.asarray(model.predict(X_val))
 
             if metric in ["logloss", "binary_logloss"]:
                 from sklearn.metrics import log_loss
 
-                score = log_loss(y_val, preds)
+                score = float(log_loss(y_val, preds))
             elif metric == "auc":
                 from sklearn.metrics import roc_auc_score
 
-                score = -roc_auc_score(y_val, preds)
+                score = float(-roc_auc_score(y_val, preds))
             else:
                 from sklearn.metrics import accuracy_score
 
-                score = -accuracy_score(y_val, (preds > 0.5).astype(int))
+                preds_binary = (preds > 0.5).astype(int)
+                score = float(-accuracy_score(y_val, preds_binary))
 
             scores.append(score)
 
-            trial.report(np.mean(scores), fold)
+            trial.report(float(np.mean(scores)), fold)
             if trial.should_prune():
                 raise optuna.TrialPruned()
 
-        return np.mean(scores)
+        return float(np.mean(scores))
 
     def _cv_score_cb(
         self,
@@ -555,8 +559,9 @@ class HyperparameterOptimizer:
         trial: optuna.Trial,
     ) -> float:
         """Calculate cross-validation score for CatBoost."""
+        assert cb is not None, "CatBoost is required"
         tscv = TimeSeriesSplit(n_splits=self.n_cv_splits)
-        scores = []
+        scores: List[float] = []
 
         for fold, (train_idx, val_idx) in enumerate(tscv.split(X)):
             X_train, X_val = X.iloc[train_idx], X.iloc[val_idx]
@@ -573,23 +578,24 @@ class HyperparameterOptimizer:
             if metric in ["Logloss", "logloss", "binary_logloss"]:
                 from sklearn.metrics import log_loss
 
-                score = log_loss(y_val, preds)
+                score = float(log_loss(y_val, preds))
             elif metric in ["AUC", "auc"]:
                 from sklearn.metrics import roc_auc_score
 
-                score = -roc_auc_score(y_val, preds)
+                score = float(-roc_auc_score(y_val, preds))
             else:
                 from sklearn.metrics import accuracy_score
 
-                score = -accuracy_score(y_val, (preds > 0.5).astype(int))
+                preds_binary = (np.asarray(preds) > 0.5).astype(int)
+                score = float(-accuracy_score(y_val, preds_binary))
 
             scores.append(score)
 
-            trial.report(np.mean(scores), fold)
+            trial.report(float(np.mean(scores)), fold)
             if trial.should_prune():
                 raise optuna.TrialPruned()
 
-        return np.mean(scores)
+        return float(np.mean(scores))
 
     def _cv_score_ensemble(
         self,
@@ -601,16 +607,16 @@ class HyperparameterOptimizer:
     ) -> float:
         """Calculate cross-validation score for ensemble."""
         tscv = TimeSeriesSplit(n_splits=self.n_cv_splits)
-        scores = []
+        scores: List[float] = []
 
         for fold, (train_idx, val_idx) in enumerate(tscv.split(X)):
             X_train, X_val = X.iloc[train_idx], X.iloc[val_idx]
             y_train, y_val = y.iloc[train_idx], y.iloc[val_idx]
 
             # Train base models and get predictions
-            preds = {}
+            preds: Dict[str, np.ndarray] = {}
 
-            if weights.get("xgboost", 0) > 0 and HAS_XGB:
+            if weights.get("xgboost", 0) > 0 and HAS_XGB and xgb is not None:
                 dtrain = xgb.DMatrix(X_train, label=y_train)
                 dval = xgb.DMatrix(X_val, label=y_val)
                 model = xgb.train(
@@ -620,7 +626,7 @@ class HyperparameterOptimizer:
                 )
                 preds["xgboost"] = model.predict(dval)
 
-            if weights.get("lightgbm", 0) > 0 and HAS_LGB:
+            if weights.get("lightgbm", 0) > 0 and HAS_LGB and lgb is not None:
                 train_data = lgb.Dataset(X_train, label=y_train)
                 model = lgb.train(
                     {
@@ -631,9 +637,9 @@ class HyperparameterOptimizer:
                     train_data,
                     num_boost_round=100,
                 )
-                preds["lightgbm"] = model.predict(X_val)
+                preds["lightgbm"] = np.asarray(model.predict(X_val))
 
-            if weights.get("catboost", 0) > 0 and HAS_CB:
+            if weights.get("catboost", 0) > 0 and HAS_CB and cb is not None:
                 train_pool = cb.Pool(X_train, label=y_train)
                 model = cb.CatBoost(
                     {**self.gpu_config.cb_params, "iterations": 100, "verbose": False}
@@ -650,14 +656,14 @@ class HyperparameterOptimizer:
 
             from sklearn.metrics import log_loss
 
-            score = log_loss(y_val, ensemble_pred)
+            score = float(log_loss(y_val, ensemble_pred))
             scores.append(score)
 
-            trial.report(np.mean(scores), fold)
+            trial.report(float(np.mean(scores)), fold)
             if trial.should_prune():
                 raise optuna.TrialPruned()
 
-        return np.mean(scores)
+        return float(np.mean(scores))
 
     def _create_result(self, study: optuna.Study) -> OptimizationResult:
         """Create optimization result from study."""

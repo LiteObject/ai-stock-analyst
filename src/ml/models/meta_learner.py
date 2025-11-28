@@ -294,6 +294,7 @@ class MetaLearner:
             if not HAS_XGB:
                 raise ImportError("XGBoost not available")
 
+            assert xgb is not None  # Type narrowing for Pylance
             if self.use_gpu:
                 params["tree_method"] = "gpu_hist"
                 params["device"] = "cuda:0"
@@ -309,6 +310,7 @@ class MetaLearner:
             if not HAS_LGB:
                 raise ImportError("LightGBM not available")
 
+            assert lgb is not None  # Type narrowing for Pylance
             if self.use_gpu:
                 params["device"] = "gpu"
             else:
@@ -324,6 +326,7 @@ class MetaLearner:
             if not HAS_CB:
                 raise ImportError("CatBoost not available")
 
+            assert cb is not None  # Type narrowing for Pylance
             if self.use_gpu:
                 params["task_type"] = "GPU"
             else:
@@ -449,6 +452,7 @@ class MetaLearner:
             if not HAS_XGB:
                 raise ImportError("XGBoost not available")
 
+            assert xgb is not None  # Type narrowing for Pylance
             params = {
                 "n_estimators": 50,
                 "max_depth": 3,
@@ -465,6 +469,7 @@ class MetaLearner:
             if not HAS_LGB:
                 raise ImportError("LightGBM not available")
 
+            assert lgb is not None  # Type narrowing for Pylance
             params = {
                 "n_estimators": 50,
                 "num_leaves": 15,

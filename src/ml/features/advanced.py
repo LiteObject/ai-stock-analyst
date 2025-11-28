@@ -154,7 +154,7 @@ class AdvancedFeatureEngineer:
 
         # Parkinson Volatility (uses high-low range)
         # More efficient than close-close volatility
-        log_hl = np.log(df["high"] / df["low"])
+        log_hl = pd.Series(np.log(df["high"] / df["low"]), index=df.index)
         features["parkinson_vol"] = np.sqrt(
             log_hl.rolling(20).apply(lambda x: (x**2).sum() / (4 * len(x) * np.log(2)))
         ) * np.sqrt(252)
@@ -201,7 +201,7 @@ class AdvancedFeatureEngineer:
         returns = df["close"].pct_change()
 
         # On-Balance Volume (OBV)
-        obv = (np.sign(returns) * df["volume"]).cumsum()
+        obv = pd.Series((np.sign(returns) * df["volume"]).cumsum(), index=df.index)
         features["obv"] = obv
         features["obv_ma20"] = obv.rolling(20).mean()
         features["obv_slope"] = obv.diff(5) / 5
@@ -421,7 +421,8 @@ class AdvancedFeatureEngineer:
         features["up_days_ratio"] = up_days / 20
 
         # Consecutive Up/Down Days
-        sign_changes = np.sign(returns).diff().ne(0).cumsum()
+        sign_series = pd.Series(np.sign(returns), index=df.index)
+        sign_changes = sign_series.diff().ne(0).cumsum()
         features["streak_length"] = returns.groupby(sign_changes).cumcount() + 1
 
         return features

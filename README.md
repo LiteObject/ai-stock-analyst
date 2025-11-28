@@ -97,8 +97,11 @@ streamlit run app/streamlit_app.py
 - **Multi-Agent Analysis**: 6 specialized AI agents working in concert
 - **Multiple LLM Support**: OpenAI, Anthropic, Google AI, Ollama
 - **Free Data Sources**: Works with free tickers (AAPL, MSFT, GOOGL, NVDA, TSLA)
-- **ML Pipeline**: Automated feature engineering and model training
-- **Backtesting Engine**: Historical performance validation with comprehensive metrics
+- **Advanced ML Pipeline**: GPU-accelerated ensemble models with hyperparameter optimization
+- **Feature Engineering**: Technical indicators, market microstructure, regime detection, cross-asset features
+- **Backtesting Engine**: Event-driven backtesting with realistic execution modeling
+- **Walk-Forward Analysis**: Out-of-sample validation with rolling optimization windows
+- **Cross-Validation**: Time-series aware CV with purging and embargo
 - **Risk Management**: Position sizing, VaR, stop-loss calculations
 - **Web Interface**: Interactive Streamlit dashboard
 - **Caching**: Reduce API costs during development
@@ -271,6 +274,33 @@ This demo:
 2. Trains a Random Forest Classifier to predict price direction.
 3. Backtests the trained model using a confidence-based strategy.
 
+### Running the ML Validator CLI
+
+For comprehensive ML validation with GPU-accelerated models:
+
+```bash
+# Basic validation run
+python -m cli.ml_validator --tickers AAPL MSFT GOOGL
+
+# Full validation with date range
+python -m cli.ml_validator --tickers AAPL MSFT GOOGL NVDA TSLA SPY \
+    --start 2020-01-01 --end 2025-01-01 --use-gpu
+
+# With hyperparameter optimization
+python -m cli.ml_validator --tickers AAPL --optimize --n-trials 100
+
+# Specify cross-validation strategy
+python -m cli.ml_validator --tickers AAPL --cv-strategy purged_kfold --n-splits 5
+```
+
+The ML Validator provides:
+- **Feature Engineering**: Technical indicators, market microstructure, volatility features
+- **Regime Detection**: Trend, volatility, and market stress indicators
+- **Cross-Validation**: Purged K-Fold and Time Series CV with embargo periods
+- **Hyperparameter Optimization**: Optuna-based tuning for XGBoost/LightGBM/CatBoost
+- **Validation Metrics**: Accuracy, F1, directional accuracy, Sharpe ratio
+- **GPU Acceleration**: Automatic detection and utilization of CUDA GPUs
+
 ## Docker
 
 Run the application in a Docker container for consistent environments:
@@ -440,12 +470,39 @@ fear_greed = get_fear_greed_index()
 - **ML Pipeline**: Feature engineering -> Model training -> Backtesting
 - **Risk Management**: Position sizing, stop-loss, and portfolio limits
 
+### ML Pipeline Architecture
+
+The ML pipeline provides production-grade model training and validation:
+
+```
+Data Ingestion → Feature Engineering → Model Training → Validation → Backtesting
+                        ↓                    ↓              ↓
+                 ┌─────────────┐      ┌─────────────┐ ┌─────────────┐
+                 │ Technical   │      │ XGBoost     │ │ Purged      │
+                 │ Advanced    │      │ LightGBM    │ │ K-Fold CV   │
+                 │ Regime      │  →   │ CatBoost    │ │ Time Series │
+                 │ Cross-Asset │      │ Meta-Learner│ │ Walk-Forward│
+                 └─────────────┘      └─────────────┘ └─────────────┘
+```
+
+**Key Components**:
+
+| Component | Description |
+|-----------|-------------|
+| **Feature Engineering** | 100+ technical, microstructure, and regime features |
+| **Ensemble Models** | GPU-accelerated XGBoost, LightGBM, CatBoost with stacking |
+| **Hyperparameter Tuning** | Optuna-based Bayesian optimization |
+| **Cross-Validation** | Purged K-Fold with embargo periods to prevent lookahead bias |
+| **Threshold Optimization** | Profit-factor and Sharpe-ratio based threshold tuning |
+| **Walk-Forward Analysis** | Rolling window out-of-sample validation |
+
 ### Technology Stack
 
 | Category | Technologies |
 |----------|--------------|
 | Core | Python 3.10+, LangChain, Pydantic |
-| ML | scikit-learn, XGBoost, pandas, numpy |
+| ML | scikit-learn, XGBoost, LightGBM, CatBoost, Optuna, pandas, numpy |
+| GPU | PyTorch (CUDA), GPU-accelerated gradient boosting |
 | Data | yfinance, FRED API, SEC EDGAR |
 | UI | Streamlit |
 | Database | SQLAlchemy, SQLite |
@@ -567,10 +624,11 @@ ai-stock-analyst/
 │   │   ├── technicals.py         # Technical analysis agent
 │   │   └── valuation.py          # Valuation analysis agent
 │   ├── backtesting/              # Backtesting framework
-│   │   ├── engine.py             # Core backtesting engine
+│   │   ├── engine.py             # Event-driven backtesting engine
 │   │   ├── metrics.py            # Performance metrics calculation
+│   │   ├── position_manager.py   # Position sizing & execution modeling
 │   │   ├── strategy.py           # Strategy base class
-│   │   └── walk_forward.py       # Walk-forward analysis
+│   │   └── walk_forward.py       # Walk-forward analysis & optimization
 │   ├── core/                     # Core domain models
 │   │   ├── events.py             # Event system
 │   │   ├── exceptions.py         # Custom exceptions
@@ -589,14 +647,27 @@ ai-stock-analyst/
 │   │   └── state.py              # Agent state definitions
 │   ├── ml/                       # Machine learning pipeline
 │   │   ├── features/             # Feature engineering
+│   │   │   ├── advanced.py       # Market microstructure & volatility features
+│   │   │   ├── cross_asset.py    # Cross-asset correlation features
 │   │   │   ├── fundamental.py    # Fundamental features
+│   │   │   ├── regime.py         # Market regime detection
 │   │   │   ├── sentiment.py      # Sentiment features
-│   │   │   └── technical.py      # Technical indicators
+│   │   │   └── technical.py      # Technical indicators (pandas-ta)
 │   │   ├── models/               # ML models
 │   │   │   ├── base.py           # Base model interface
-│   │   │   └── ensemble.py       # Ensemble predictor (RF, XGBoost)
-│   │   └── training/             # Model training
-│   │       └── trainer.py        # Model trainer
+│   │   │   ├── ensemble.py       # Ensemble predictor (RF, XGBoost, LightGBM)
+│   │   │   └── meta_learner.py   # Stacking ensemble with meta-learning
+│   │   ├── training/             # Model training
+│   │   │   └── trainer.py        # Model trainer
+│   │   ├── tuning/               # Hyperparameter optimization
+│   │   │   ├── hyperparameter.py # GPU-accelerated Optuna tuning
+│   │   │   └── threshold.py      # Prediction threshold optimization
+│   │   └── validation/           # Model validation
+│   │       ├── cross_validation.py # Time-series CV (Purged K-Fold, etc.)
+│   │       ├── reporter.py       # Validation reporting
+│   │       └── validation_metrics.py # Comprehensive metrics
+│   ├── cli/                      # Command-line interfaces
+│   │   └── ml_validator.py       # ML validation CLI tool
 │   ├── risk/                     # Risk management
 │   │   ├── limits.py             # Trading limits
 │   │   ├── portfolio.py          # Portfolio risk analysis
