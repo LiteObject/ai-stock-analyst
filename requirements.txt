@@ -1,0 +1,87 @@
+# AI Hedge Fund Dependencies
+# ==========================
+# Core dependencies with pinned versions for reproducibility
+
+# LangChain & LLM Framework
+langchain>=0.3.0,<0.4.0
+langchain-core>=0.3.0,<0.4.0
+langchain-openai>=0.2.0,<0.3.0
+langchain-ollama>=0.2.0,<0.3.0
+langchain-text-splitters>=0.3.0,<0.4.0
+langgraph>=0.2.0,<0.3.0
+langgraph-checkpoint>=2.0.0,<3.0.0
+langgraph-sdk>=0.1.0,<0.2.0
+langsmith[otel]>=0.3.45,<0.4.0
+
+# Optional LLM Providers (install as needed)
+# langchain-anthropic>=0.3.0,<0.4.0  # pip install langchain-anthropic
+# langchain-google-genai>=2.0.0,<3.0.0  # pip install langchain-google-genai
+
+# Data Processing
+pandas>=2.2.0,<3.0.0
+numpy>=1.26.0,<2.0.0
+
+# Financial Data (Yahoo Finance fallback)
+yfinance>=0.2.40,<0.3.0
+
+# Data Validation & Settings
+pydantic>=2.10.0,<3.0.0
+pydantic-settings>=2.0.0,<3.0.0
+
+# HTTP & Networking
+requests>=2.32.0,<3.0.0
+urllib3>=2.0.0,<3.0.0
+aiohttp>=3.11.0,<4.0.0
+
+# Caching
+diskcache>=5.6.0,<6.0.0
+
+# CLI & User Interface
+colorama>=0.4.6,<0.5.0
+questionary>=2.1.0,<3.0.0
+tabulate>=0.9.0,<1.0.0
+streamlit>=1.40.0,<2.0.0
+
+# Visualization
+matplotlib>=3.10.0,<4.0.0
+pillow>=11.0.0,<12.0.0
+
+# Date/Time Utilities
+python-dateutil>=2.9.0,<3.0.0
+pytz>=2024.0
+
+# Environment & Configuration
+python-dotenv>=1.0.0,<2.0.0
+
+# LLM Providers
+ollama>=0.4.0,<0.5.0
+openai>=1.0.0,<2.0.0
+
+# Risk Management and Optimization
+scipy>=1.11.0,<2.0.0
+
+# Machine Learning
+scikit-learn>=1.3.0,<2.0.0
+xgboost>=2.0.0,<3.0.0
+
+# Development Dependencies
+# ========================
+# Install with: pip install -r requirements-dev.txt or pip install .[dev]
+
+# Testing
+pytest>=8.0.0,<9.0.0
+pytest-cov>=4.0.0,<5.0.0
+
+# Code Quality
+black>=24.0.0,<25.0.0
+isort>=5.13.0,<6.0.0
+flake8>=7.0.0,<8.0.0
+mypy>=1.0.0,<2.0.0
+
+# Security Scanning
+bandit>=1.7.0,<2.0.0
+safety>=2.3.0,<3.0.0
+
+# Other utilities
+PyYAML>=6.0.0,<7.0.0
+tenacity>=8.5.0,<9.0.0

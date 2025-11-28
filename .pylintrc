@@ -1,0 +1,3 @@
+[MESSAGES CONTROL]
+disable=missing-docstring,missing-module-docstring
+disable=redefined-outer-name
