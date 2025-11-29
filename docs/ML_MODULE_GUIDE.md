@@ -83,6 +83,11 @@ This is like **adjusting the knobs on a radio** to get the clearest signal.
 | **`hyperparameter.py`** | Finds optimal model settings using Optuna | Like a chef experimenting with ingredient amounts to find the perfect recipe |
 | **`threshold.py`** | Decides when to act on predictions | Like deciding "I'll only buy if the model is at least 60% confident" |
 
+>Hyperparameters are settings like:
+>- Max depth of decision trees
+>- Learning rate
+>- Number of estimators
+
 ### Hyperparameter Tuning Example
 
 ```
