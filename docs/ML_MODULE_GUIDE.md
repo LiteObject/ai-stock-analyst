@@ -8,6 +8,18 @@ Think of the ML module as a **stock prediction factory** with 5 main departments
 
 ---
 
+## Prerequisites
+
+Before running the ML validator, ensure you have:
+
+- **Python 3.10+** installed
+- **Required packages**: `pip install -r requirements.txt`
+- **Minimum data**: At least 6 months of historical data for meaningful results
+- **Memory**: At least 8GB RAM (16GB recommended for multiple tickers)
+- **(Optional)** NVIDIA GPU with CUDA 11.0+ support for faster training (e.g., RTX 3090, 4090)
+
+---
+
 ## 1. Feature Engineering (`ml/features/`)
 
 *"Turning raw stock data into useful signals"*
@@ -16,7 +28,7 @@ This is like a **research department** that takes raw stock prices and transform
 
 | Module | What It Does | Simple Analogy |
 |--------|--------------|----------------|
-| **`technical.py`** | Calculates RSI, MACD, Bollinger Bands, etc. | Like checking a patient's vital signs (pulse, blood pressure) |
+| **`technical.py`** | Calculates RSI, MACD, Bollinger Bands, etc. | Like a doctor checking vital signs (pulse, blood pressure) |
 | **`advanced.py`** | Creates sophisticated features like volatility measures, volume patterns | Like running advanced medical tests (MRI, blood work) |
 | **`regime.py`** | Detects market conditions (bullish, bearish, volatile) | Like checking the weather before going outside |
 | **`cross_asset.py`** | Compares stocks to each other and the market | Like comparing a student's grades to the class average |
@@ -107,6 +119,15 @@ This is like **grading a student's work** - but being very careful not to cheat.
    The "gap" prevents information from leaking
 ```
 
+### Choosing the Right Cross-Validation Strategy
+
+| Strategy | When to Use | Pros | Cons |
+|----------|-------------|------|------|
+| **purged_kfold** | Default choice for most cases | Prevents look-ahead bias, uses all data | Slightly complex setup |
+| **time_series** | Strong temporal patterns expected | Strictly respects time order | May not use all data efficiently |
+
+**Recommendation**: Start with `purged_kfold` unless you have a specific reason to use time series CV.
+
 ---
 
 ## 5. CLI Validator (`src/cli/ml_validator.py`)
@@ -192,6 +213,32 @@ Step 7: Generate Report
 | **Purged CV** | Special cross-validation that prevents "cheating" by looking at future data |
 | **Threshold** | The confidence level needed before acting on a prediction |
 | **GPU Acceleration** | Using your graphics card (e.g., RTX 4090) to train models much faster |
+
+---
+
+## Understanding the Metrics
+
+After running the validator, here's how to interpret the results:
+
+| Metric | Target Range | What It Means |
+|--------|--------------|---------------|
+| **Accuracy** | > 0.52 | Better than random guessing (50%) |
+| **F1 Score** | > 0.50 | Good balance between precision and recall |
+| **Precision** | > 0.55 | When we predict "buy", how often are we right? |
+| **Recall** | > 0.50 | Of all actual "buy" opportunities, how many did we catch? |
+| **Directional Accuracy** | > 0.52 | Did we predict the price direction correctly? |
+
+### Red Flags 🚩
+
+- **Accuracy > 0.70**: Likely overfitting - the model memorized the training data
+- **High variance between folds**: Unstable model, results depend too much on data split
+- **F1 much lower than Accuracy**: Class imbalance issue - model might be predicting mostly one class
+
+### Green Flags ✅
+
+- **Consistent metrics across folds**: Stable, reliable model
+- **Accuracy between 0.52-0.60**: Realistic edge for financial predictions
+- **Low standard deviation (± < 0.03)**: Robust performance
 
 ---
 
@@ -310,3 +357,92 @@ src/ml/
 └── training/
     └── trainer.py        # Model training utilities
 ```
+
+---
+
+## Troubleshooting
+
+### GPU Not Detected
+
+```bash
+# Check if CUDA is available
+python -c "import torch; print('CUDA available:', torch.cuda.is_available())"
+
+# Check GPU name
+python -c "import torch; print(torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'No GPU')"
+```
+
+**Solutions**:
+- Ensure NVIDIA drivers are installed
+- Install PyTorch with CUDA: `pip install torch --index-url https://download.pytorch.org/whl/cu118`
+
+### Out of Memory Error
+
+```
+RuntimeError: CUDA out of memory
+```
+
+**Solutions**:
+- Reduce `--n-trials` for hyperparameter optimization (try 20 instead of 100)
+- Use fewer tickers in a single run
+- Add `--no-gpu` flag to use CPU instead
+- Close other GPU-intensive applications
+
+### Slow Data Loading
+
+**Solutions**:
+- Check your internet connection (data is fetched from Yahoo Finance)
+- Use a shorter date range for testing
+- The first run is slower; subsequent runs use cached data
+
+### Import Errors
+
+```
+ModuleNotFoundError: No module named 'ml'
+```
+
+**Solution**: Set the Python path before running:
+
+```bash
+# Windows PowerShell
+$env:PYTHONPATH = "src"
+
+# Linux/Mac
+export PYTHONPATH=src
+```
+
+### Low Accuracy Results
+
+If accuracy is around 50% (random guessing):
+
+1. **Check data quality**: Ensure you have enough historical data
+2. **Try different features**: Some features work better for certain stocks
+3. **Adjust prediction horizon**: Try `--prediction-horizon 1` or `10` instead of default 5
+4. **Market conditions**: Some periods are harder to predict than others
+
+---
+
+## Quick Reference
+
+| Task | Command |
+|------|--------|
+| Quick test (single stock) | `python -m cli.ml_validator --tickers AAPL` |
+| Multiple stocks | `python -m cli.ml_validator --tickers AAPL MSFT GOOGL` |
+| Custom date range | `python -m cli.ml_validator --start 2022-01-01 --end 2024-12-31` |
+| With optimization | `python -m cli.ml_validator --tickers AAPL --optimize --n-trials 50` |
+| Time series CV | `python -m cli.ml_validator --cv-strategy time_series` |
+| More CV folds | `python -m cli.ml_validator --n-splits 10` |
+| Debug mode | `python -m cli.ml_validator --verbose` |
+| Save to specific file | `python -m cli.ml_validator --output my_report.md` |
+
+---
+
+## Next Steps
+
+After validating your model:
+
+1. **Review the report**: Check for red flags mentioned above
+2. **Iterate on features**: Try enabling/disabling different feature groups
+3. **Tune hyperparameters**: Use `--optimize` for better results
+4. **Backtest**: Use the trained model with `src/backtester.py`
+5. **Integrate**: Use predictions in the main agent system for trading decisions
