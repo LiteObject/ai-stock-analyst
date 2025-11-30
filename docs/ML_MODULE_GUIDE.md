@@ -86,7 +86,7 @@ This is like **adjusting the knobs on a radio** to get the clearest signal.
 >Hyperparameters are settings like:
 >- Max depth of decision trees
 >- Learning rate
->- Number of estimators
+>- Number of estimator
 
 ### Hyperparameter Tuning Example
 
@@ -170,38 +170,43 @@ Step 7: Generate Report
 
 ## Visual Summary
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        ML PIPELINE                               │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐       │
-│  │  Raw Stock   │───▶│   Feature    │───▶│   Ensemble   │       │
-│  │    Data      │    │  Engineering │    │    Models    │       │
-│  └──────────────┘    └──────────────┘    └──────────────┘       │
-│                             │                    │               │
-│                             ▼                    ▼               │
-│                      ┌──────────────┐    ┌──────────────┐       │
-│                      │    Regime    │    │ Hyperparameter│       │
-│                      │  Detection   │    │    Tuning    │       │
-│                      └──────────────┘    └──────────────┘       │
-│                                                  │               │
-│                                                  ▼               │
-│                                          ┌──────────────┐       │
-│                                          │  Threshold   │       │
-│                                          │ Optimization │       │
-│                                          └──────────────┘       │
-│                                                  │               │
-│                                                  ▼               │
-│  ┌──────────────────────────────────────────────────────────┐   │
-│  │                     VALIDATION                            │   │
-│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐       │   │
-│  │  │Cross-Valid. │  │   Metrics   │  │   Report    │       │   │
-│  │  │(Purged CV)  │  │ Calculation │  │  Generator  │       │   │
-│  │  └─────────────┘  └─────────────┘  └─────────────┘       │   │
-│  └──────────────────────────────────────────────────────────┘   │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph Input["Data Input"]
+        A[Raw Stock Data<br/>Price, Volume, OHLC]
+    end
+    
+    subgraph Features["Feature Engineering"]
+        B[Technical Features<br/>RSI, MACD, Bollinger]
+        C[Regime Detection<br/>Trend, Volatility]
+    end
+    
+    subgraph Models["Model Training"]
+        D[Ensemble Models<br/>XGBoost, LightGBM, CatBoost, RF]
+        E[Hyperparameter Tuning<br/>Optuna Optimization]
+        F[Threshold Optimization<br/>Confidence Calibration]
+    end
+    
+    subgraph Validation["Validation"]
+        G[Cross-Validation<br/>Purged K-Fold]
+        H[Metrics Calculation<br/>Accuracy, F1, Sharpe]
+        I[Report Generator<br/>Markdown Output]
+    end
+    
+    A --> B
+    A --> C
+    B --> D
+    C --> D
+    D --> E
+    E --> F
+    F --> G
+    G --> H
+    H --> I
+
+    style Input fill:#e1f5fe
+    style Features fill:#fff3e0
+    style Models fill:#f3e5f5
+    style Validation fill:#e8f5e9
 ```
 
 ---
@@ -233,13 +238,13 @@ After running the validator, here's how to interpret the results:
 | **Recall** | > 0.50 | Of all actual "buy" opportunities, how many did we catch? |
 | **Directional Accuracy** | > 0.52 | Did we predict the price direction correctly? |
 
-### Red Flags 🚩
+### Red Flags
 
 - **Accuracy > 0.70**: Likely overfitting - the model memorized the training data
 - **High variance between folds**: Unstable model, results depend too much on data split
 - **F1 much lower than Accuracy**: Class imbalance issue - model might be predicting mostly one class
 
-### Green Flags ✅
+### Green Flags
 
 - **Consistent metrics across folds**: Stable, reliable model
 - **Accuracy between 0.52-0.60**: Realistic edge for financial predictions
