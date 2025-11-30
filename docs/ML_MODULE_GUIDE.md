@@ -171,7 +171,7 @@ Step 7: Generate Report
 ## Visual Summary
 
 ```mermaid
-flowchart TB
+flowchart LR
     subgraph Input["Data Input"]
         A[Raw Stock Data<br/>Price, Volume, OHLC]
     end
